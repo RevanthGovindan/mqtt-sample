@@ -1,46 +1,49 @@
 import React, { Component } from "react";
 import { View, StyleSheet, Text, Button } from "react-native";
-import MQTTConnection from "./MQTTConnection";
 import { Buffer } from "buffer";
 global.Buffer = Buffer;
+import MQTT from 'sp-react-native-mqtt';
 
-import mqtt from "mqtt/dist/mqtt";
 
 class App extends Component {
 
     constructor() {
         super();
+        this.client = null;
     }
 
     componentDidMount() {
-        this.mqttConnect = new MQTTConnection;
-        this.mqttConnect.onMQTTConnect = this.onMQTTConnect;
-        this.mqttConnect.onMQTTLost = this.onMQTTLost;
-        this.mqttConnect.onMQTTMessageArrived = this.onMQTTMessageArrived;
-        this.mqttConnect.onMQTTMessageDelivered = this.onMQTTMessageDelivered;
-        this.mqttConnect.connect("13.59.122.156", 1883)
-    }
 
-    onMQTTConnect = () => {
-        console.log("On mqtt connect");
-        this.mqttConnect.subscribeChannel('test1');
-    }
+        MQTT.createClient({
+            uri: 'mqtt://13.59.122.156:1883',
+            clientId: 'clientId-6FQNHncuKg',
+            user: "hankerbee",
+            pass: "Hb@1234()",
+            auth: true
+        }).then(function (client) {
 
-    onMQTTLost = (res) => {
-        console.log("On mqtt connection lost " + JSON.stringify(res));
-    }
+            client.on('closed', function () {
+                console.log('mqtt.event.closed');
+            });
 
-    onMQTTMessageArrived = (message) => {
-        // console.log("Message arrived ", message);
-        // console.log("Message payload string ", message._getPayloadString());
-    }
+            client.on('error', function (msg) {
+                console.log('mqtt.event.error', msg);
+            });
 
-    onMQTTMessageDelivered = (message) => {
-        console.log("Message delivered ", message);
-    }
+            client.on('message', function (msg) {
+                console.log('mqtt.event.message', msg);
+            });
 
-    componentWillUnmount = () => {
-        this.mqttConnect.close();
+            client.on('connect', function () {
+                console.log('connected');
+                client.subscribe('/data', 0);
+                client.publish('/data', "test", 0, false);
+            });
+
+            client.connect();
+        }).catch(function (err) {
+            console.log(err);
+        });
     }
 
     render() {
